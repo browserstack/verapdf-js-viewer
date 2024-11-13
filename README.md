@@ -17,6 +17,7 @@ Internet Explorer is not supported in veraPDF-js-viewer. Use Edge instead
 ### Prerequisites
 
 - Configure PDFWorker: [react-pdf?tab=readme-ov-file#configure-pdfjs-worker](https://github.com/wojtekmaj/react-pdf?tab=readme-ov-file#configure-pdfjs-worker)
+- In your package.json add a dependency `"pdfjs-dist": "github:veraPDF/pdfjs-dist#v4.4.168-taggedPdf-0.1.18",`
 
 ### Usage
 
