@@ -22,11 +22,11 @@ var _ = require('lodash');
 var useIntersection = require('use-intersection');
 var styled = require('styled-components');
 
-function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'default' in e ? e : { 'default': e }; }
+function _interopDefault (e) { return e && e.__esModule ? e : { 'default': e }; }
 
-var React__default = /*#__PURE__*/_interopDefaultLegacy(React);
-var ___default = /*#__PURE__*/_interopDefaultLegacy(_);
-var styled__default = /*#__PURE__*/_interopDefaultLegacy(styled);
+var React__default = /*#__PURE__*/_interopDefault(React);
+var ___default = /*#__PURE__*/_interopDefault(_);
+var styled__default = /*#__PURE__*/_interopDefault(styled);
 
 /******************************************************************************
 Copyright (c) Microsoft Corporation.
