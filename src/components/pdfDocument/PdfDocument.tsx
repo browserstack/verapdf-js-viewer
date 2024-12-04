@@ -144,7 +144,7 @@ const PdfDocument: FC<IPdfDocumentProps> = (props) => {
     setLoaded(true);
     props.onLoadSuccess?.(data);
   }, [props.onLoadSuccess, bboxes, props.defaultHeight, props.defaultWidth]);
-  
+
   const onPageLoadSuccess = useCallback((data: PageCallback) => {
     props.onPageLoadSuccess?.(data);
   }, [props.onPageLoadSuccess]);
