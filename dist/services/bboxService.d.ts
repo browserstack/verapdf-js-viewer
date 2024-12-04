@@ -11,10 +11,16 @@ export declare const getMcidList: (node: AnyObject, mcidList?: TreeElementBbox[]
 export declare const createBboxMap: (mcidList: TreeElementBbox[]) => AnyObject;
 export declare const createAllBboxes: (bboxesAll: TreeElementBbox[] | undefined, pageMap: AnyObject, annotations: AnyObject, viewport: number[], rotateAngle: number) => IBbox[];
 export declare const calculateLocationInStreamOperator: (location: string) => {
-    pageIndex: number;
-    operatorIndex: number;
-    glyphIndex: number;
-} | null;
+    bboxPosition: null;
+    hasPageIndex: boolean;
+} | {
+    bboxPosition: {
+        pageIndex: number;
+        operatorIndex: number;
+        glyphIndex: number;
+    };
+    hasPageIndex: boolean;
+};
 export declare const getSelectedPageByLocation: (bboxLocation: string) => number;
 export declare const getBboxPages: (bboxes: IBboxLocation[], structure: AnyObject) => any[];
 export declare const checkIsBboxOutOfThePage: (bbox: IBbox, scale: number, page: number) => boolean;

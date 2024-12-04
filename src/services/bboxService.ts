@@ -96,7 +96,7 @@ export const buildBboxMap = (bboxes: IBboxLocation[], structure: AnyObject) => {
       const match = bbox.location.match(annotIndexRegExp);
       const annotIndex = parseInt(match?.groups?.annotIndex!, 10);
       if (bbox.location.includes('contentStream') && bbox.location.includes('operators')) {
-        const bboxPosition = calculateLocationInStreamOperator(bbox.location);
+        const {bboxPosition} = calculateLocationInStreamOperator(bbox.location);
         if (!bboxPosition) {
           return;
         }
@@ -287,17 +287,36 @@ export const calculateLocationInStreamOperator = (location: string) => {
     }
   });
   if (pageIndex === -1 || operatorIndex === -1 || glyphIndex === -1) {
-    return null;
+    return {
+      bboxPosition: null,
+      hasPageIndex: pageIndex !== -1
+    };
   }
   return {
-    pageIndex,
-    operatorIndex,
-    glyphIndex,
+    bboxPosition: {
+      pageIndex,
+      operatorIndex,
+      glyphIndex,
+    },
+    hasPageIndex: pageIndex !== -1
   }
 }
 
 export const getSelectedPageByLocation = (bboxLocation: string) => {
-  const location = bboxLocation;
+  let location = bboxLocation;
+
+  // For cases where the bbox has page index but no operator or glyph value
+  // allow annotating the entire page
+  if (bboxLocation.includes('contentStream') && bboxLocation.includes('operators')) {
+    const {bboxPosition, hasPageIndex} = calculateLocationInStreamOperator(bboxLocation);
+    if (!bboxPosition && hasPageIndex) {
+      let tempPath = location.split('/');
+      const pageIndex = tempPath.findIndex(node => node.startsWith('pages'));
+      tempPath = tempPath.slice(0, pageIndex + 1);
+      location = tempPath.join('/');
+    }
+  }
+
   const path = location.split('/')
   let pageNumber = -1;
   if (location?.includes('pages') && path[path.length - 1].startsWith('pages')) {

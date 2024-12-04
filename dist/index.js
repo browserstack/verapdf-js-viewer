@@ -306,7 +306,7 @@ var buildBboxMap = function (bboxes, structure) {
             var match = bbox.location.match(annotIndexRegExp);
             var annotIndex_1 = parseInt((_a = match === null || match === void 0 ? void 0 : match.groups) === null || _a === void 0 ? void 0 : _a.annotIndex, 10);
             if (bbox.location.includes('contentStream') && bbox.location.includes('operators')) {
-                var bboxPosition = calculateLocationInStreamOperator(bbox.location);
+                var bboxPosition = calculateLocationInStreamOperator(bbox.location).bboxPosition;
                 if (!bboxPosition) {
                     return;
                 }
@@ -514,16 +514,33 @@ var calculateLocationInStreamOperator = function (location) {
         }
     });
     if (pageIndex === -1 || operatorIndex === -1 || glyphIndex === -1) {
-        return null;
+        return {
+            bboxPosition: null,
+            hasPageIndex: pageIndex !== -1
+        };
     }
     return {
-        pageIndex: pageIndex,
-        operatorIndex: operatorIndex,
-        glyphIndex: glyphIndex,
+        bboxPosition: {
+            pageIndex: pageIndex,
+            operatorIndex: operatorIndex,
+            glyphIndex: glyphIndex,
+        },
+        hasPageIndex: pageIndex !== -1
     };
 };
 var getSelectedPageByLocation = function (bboxLocation) {
     var location = bboxLocation;
+    // For cases where the bbox has page index but no operator or glyph value
+    // allow annotating the entire page
+    if (bboxLocation.includes('contentStream') && bboxLocation.includes('operators')) {
+        var _a = calculateLocationInStreamOperator(bboxLocation), bboxPosition = _a.bboxPosition, hasPageIndex = _a.hasPageIndex;
+        if (!bboxPosition && hasPageIndex) {
+            var tempPath = location.split('/');
+            var pageIndex = tempPath.findIndex(function (node) { return node.startsWith('pages'); });
+            tempPath = tempPath.slice(0, pageIndex + 1);
+            location = tempPath.join('/');
+        }
+    }
     var path = location.split('/');
     var pageNumber = -1;
     if ((location === null || location === void 0 ? void 0 : location.includes('pages')) && path[path.length - 1].startsWith('pages')) {
@@ -1175,8 +1192,8 @@ var PdfDocument = function (props) {
     var _g = React.useState({}), treeElementsBboxes = _g[0], setTreeElementsBboxes = _g[1];
     var _h = React.useState([]), pagesByViewport = _h[0], setPagesByViewport = _h[1];
     var _j = React.useState([]), ratioArray = _j[0], setRatioArray = _j[1];
-    var _k = React.useState(0), defaultHeight = _k[0], setDefaultHeight = _k[1];
-    var _l = React.useState(0), defaultWidth = _l[0], setDefaultWidth = _l[1];
+    var _k = React.useState(props.defaultHeight), defaultHeight = _k[0], setDefaultHeight = _k[1];
+    var _l = React.useState(props.defaultWidth), defaultWidth = _l[0], setDefaultWidth = _l[1];
     var _m = React.useState(undefined), selectedPage = _m[0], setSelectedPage = _m[1];
     var activeBbox = React.useMemo(function () {
         return props.activeBboxIndex !== undefined ? bboxes[props.activeBboxIndex] : null;
@@ -1233,7 +1250,7 @@ var PdfDocument = function (props) {
         }
     }, [activeBbox]);
     var onDocumentLoadSuccess = React.useCallback(function (data) { return __awaiter(void 0, void 0, void 0, function () {
-        var parsedTree, treeWithData, _a, treeWithIds, annotMap, pageData;
+        var parsedTree, treeWithData, _a, treeWithIds, annotMap, pageData, width, scale;
         var _b;
         return __generator(this, function (_c) {
             switch (_c.label) {
@@ -1249,15 +1266,17 @@ var PdfDocument = function (props) {
                     return [4 /*yield*/, data.getPage(1)];
                 case 1:
                     pageData = _c.sent();
-                    setDefaultHeight(pageData.view[3]);
-                    setDefaultWidth(pageData.view[2]);
+                    width = Math.min(pageData.view[2], props.defaultWidth || pageData.view[2]);
+                    scale = width / pageData.view[2];
+                    setDefaultWidth(width);
+                    setDefaultHeight(pageData.view[3] * scale);
                     setMaxPage(data.numPages);
                     setLoaded(true);
                     (_b = props.onLoadSuccess) === null || _b === void 0 ? void 0 : _b.call(props, data);
                     return [2 /*return*/];
             }
         });
-    }); }, [props.onLoadSuccess, bboxes]);
+    }); }, [props.onLoadSuccess, bboxes, props.defaultHeight, props.defaultWidth]);
     var onPageLoadSuccess = React.useCallback(function (data) {
         var _a;
         (_a = props.onPageLoadSuccess) === null || _a === void 0 ? void 0 : _a.call(props, data);
