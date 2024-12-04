@@ -306,7 +306,7 @@ var buildBboxMap = function (bboxes, structure) {
             var match = bbox.location.match(annotIndexRegExp);
             var annotIndex_1 = parseInt((_a = match === null || match === void 0 ? void 0 : match.groups) === null || _a === void 0 ? void 0 : _a.annotIndex, 10);
             if (bbox.location.includes('contentStream') && bbox.location.includes('operators')) {
-                var bboxPosition = calculateLocationInStreamOperator(bbox.location);
+                var bboxPosition = calculateLocationInStreamOperator(bbox.location).bboxPosition;
                 if (!bboxPosition) {
                     return;
                 }
@@ -514,16 +514,33 @@ var calculateLocationInStreamOperator = function (location) {
         }
     });
     if (pageIndex === -1 || operatorIndex === -1 || glyphIndex === -1) {
-        return null;
+        return {
+            bboxPosition: null,
+            hasPageIndex: pageIndex !== -1
+        };
     }
     return {
-        pageIndex: pageIndex,
-        operatorIndex: operatorIndex,
-        glyphIndex: glyphIndex,
+        bboxPosition: {
+            pageIndex: pageIndex,
+            operatorIndex: operatorIndex,
+            glyphIndex: glyphIndex,
+        },
+        hasPageIndex: pageIndex !== -1
     };
 };
 var getSelectedPageByLocation = function (bboxLocation) {
     var location = bboxLocation;
+    // For cases where the bbox has page index but no operator or glyph value
+    // allow annotating the entire page
+    if (bboxLocation.includes('contentStream') && bboxLocation.includes('operators')) {
+        var _a = calculateLocationInStreamOperator(bboxLocation), bboxPosition = _a.bboxPosition, hasPageIndex = _a.hasPageIndex;
+        if (!bboxPosition && hasPageIndex) {
+            var tempPath = location.split('/');
+            var pageIndex = tempPath.findIndex(function (node) { return node.startsWith('pages'); });
+            tempPath = tempPath.slice(0, pageIndex + 1);
+            location = tempPath.join('/');
+        }
+    }
     var path = location.split('/');
     var pageNumber = -1;
     if ((location === null || location === void 0 ? void 0 : location.includes('pages')) && path[path.length - 1].startsWith('pages')) {
