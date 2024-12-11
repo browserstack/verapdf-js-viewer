@@ -193,10 +193,12 @@ var Bbox = function (props) {
     }, [structured, selected, selectionMode]);
     if (renderBbox) {
         return renderBbox({
+            bbox: bbox,
+            bottom: bottom,
             left: left,
+            top: top,
             width: width,
             height: height,
-            top: top,
             colorScheme: colorScheme,
             disabled: disabled,
             related: related,
@@ -1242,6 +1244,7 @@ var PdfDocument = function (props) {
             var selectedPage_1 = getSelectedPageByLocation(activeBbox.location);
             if (selectedPage_1 > -1) {
                 setPage(selectedPage_1);
+                setScrollIntoPage(selectedPage_1);
             }
             setSelectedPage(selectedPage_1);
         }
@@ -1276,7 +1279,7 @@ var PdfDocument = function (props) {
                     return [2 /*return*/];
             }
         });
-    }); }, [props.onLoadSuccess, bboxes, props.defaultHeight, props.defaultWidth]);
+    }); }, [props.onLoadSuccess, bboxes, props.defaultWidth]);
     var onPageLoadSuccess = React.useCallback(function (data) {
         var _a;
         (_a = props.onPageLoadSuccess) === null || _a === void 0 ? void 0 : _a.call(props, data);
