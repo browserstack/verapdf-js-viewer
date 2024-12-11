@@ -73,10 +73,12 @@ interface IBboxProps {
 }
 
 export interface IRenderBboxProps {
+  bbox: IBbox;
   left: string;
-  width: string;
-  height: string;
+  bottom: string;
   top: string;
+  height: string;
+  width: string;
   disabled: boolean;
   related?: boolean;
   selected?: boolean;
@@ -177,10 +179,12 @@ const Bbox: FC<IBboxProps> = (props: IBboxProps) => {
 
   if (renderBbox) {
     return renderBbox({
+      bbox,
+      bottom,
       left,
+      top,
       width,
       height,
-      top,
       colorScheme,
       disabled,
       related,

@@ -120,6 +120,7 @@ const PdfDocument: FC<IPdfDocumentProps> = (props) => {
       const selectedPage = getSelectedPageByLocation(activeBbox.location);
       if (selectedPage > -1) {
         setPage(selectedPage);
+        setScrollIntoPage(selectedPage);
       }
       setSelectedPage(selectedPage);
     } else {

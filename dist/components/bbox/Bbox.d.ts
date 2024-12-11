@@ -50,10 +50,12 @@ interface IBboxProps {
     onClick?(e: any): void;
 }
 export interface IRenderBboxProps {
+    bbox: IBbox;
     left: string;
-    width: string;
-    height: string;
+    bottom: string;
     top: string;
+    height: string;
+    width: string;
     disabled: boolean;
     related?: boolean;
     selected?: boolean;
