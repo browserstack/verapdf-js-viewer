@@ -1279,7 +1279,7 @@ var PdfDocument = function (props) {
                     return [2 /*return*/];
             }
         });
-    }); }, [props.onLoadSuccess, bboxes, props.defaultHeight, props.defaultWidth]);
+    }); }, [props.onLoadSuccess, bboxes, props.defaultWidth]);
     var onPageLoadSuccess = React.useCallback(function (data) {
         var _a;
         (_a = props.onPageLoadSuccess) === null || _a === void 0 ? void 0 : _a.call(props, data);

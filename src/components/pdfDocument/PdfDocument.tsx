@@ -144,7 +144,7 @@ const PdfDocument: FC<IPdfDocumentProps> = (props) => {
     setMaxPage(data.numPages);
     setLoaded(true);
     props.onLoadSuccess?.(data);
-  }, [props.onLoadSuccess, bboxes, props.defaultHeight, props.defaultWidth]);
+  }, [props.onLoadSuccess, bboxes, props.defaultWidth]);
 
   const onPageLoadSuccess = useCallback((data: PageCallback) => {
     props.onPageLoadSuccess?.(data);
