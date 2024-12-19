@@ -476,13 +476,13 @@ var createBboxMap = function (mcidList) {
     });
     return bboxMap;
 };
-var createAllBboxes = function (bboxesAll, pageMap, annotations, viewport, rotateAngle) {
+var createAllBboxes = function (bboxesAll, pageMap, refMap, annotations, viewport, rotateAngle) {
     if (___default["default"].isNil(bboxesAll))
         return [];
     var unfilteredBboxes = bboxesAll === null || bboxesAll === void 0 ? void 0 : bboxesAll.map(function (bbox) {
         var _a = bbox, mcid = _a[0], id = _a[1];
-        var listOfMcid = cleanArray(mcid).map(function (obj) { return obj === null || obj === void 0 ? void 0 : obj.mcid; });
-        var location = parseMcidToBbox(listOfMcid, pageMap, annotations, viewport, rotateAngle);
+        var listOfMcid = cleanArray(mcid).map(function (obj) { var _a; return (obj === null || obj === void 0 ? void 0 : obj.stm) ? { mcid: obj === null || obj === void 0 ? void 0 : obj.mcid, ref: (_a = obj === null || obj === void 0 ? void 0 : obj.stm) === null || _a === void 0 ? void 0 : _a.num } : obj === null || obj === void 0 ? void 0 : obj.mcid; });
+        var location = parseMcidToBbox(listOfMcid, pageMap, refMap, annotations, viewport, rotateAngle);
         if (___default["default"].isEmpty(location)) {
             return null;
         }
@@ -646,7 +646,8 @@ var getTagsFromErrorPlace = function (context, structure) {
         return defaultValue;
     }
     if (selectedTag.hasOwnProperty('mcid') && selectedTag.hasOwnProperty('pageIndex')) {
-        return [[[selectedTag.mcid], selectedTag.pageIndex]];
+        var mcid = selectedTag.stm ? { mcid: selectedTag.mcid, ref: selectedTag.stm.num } : selectedTag.mcid;
+        return [[[mcid], selectedTag.pageIndex]];
     }
     else if (selectedTag.hasOwnProperty('annot') && selectedTag.hasOwnProperty('pageIndex')) {
         return [[{ annot: selectedTag.annot }, selectedTag.pageIndex]];
@@ -704,50 +705,48 @@ var convertContextToPath = function (errorContext) {
     }
     var contextString = errorContext;
     try {
-        if (contextString.includes('contentItem') && !contextString.includes('mcid')) {
-            var result = contextString.match(/pages\[(?<pages>\d+)\](\(.+\))?\/(annots\[(?<annots>\d+)\](\(.+\))?\/appearance\[\d\](\(.+\))?\/)?contentStream\[(?<contentStream>\d+)\](\(.+\))?\/content\[(?<content>\d+)\](?<contentItems>((\(.+\))?\/contentItem\[(\d+)\])+)/);
+        if (contextString.includes('contentItem')) {
+            var result = contextString.match(/pages\[(?<pages>\d+)\](\(.+\))?\/(annots\[(?<annots>\d+)\](\(.+\))?\/appearance\[\d\](\(.+\))?\/)?contentStream\[(?<contentStream>\d+)\](\(.+\))?\/content\[(?<content>\d+)\](\{mcid:\d+\})?(?<contentItems>((\(.+\))?\/contentItem\[(\d+)\](\{mcid:\d+\})?)+)/);
             if (result) {
                 try {
-                    var path = {};
-                    path.pageIndex = parseInt(result.groups.pages, 10);
-                    path.contentStream = parseInt(result.groups.contentStream, 10);
-                    path.content = parseInt(result.groups.content, 10);
-                    path.contentItems = result.groups.contentItems.split('/').filter(function (ci) { return ci.includes('contentItem'); }).map(function (ci) {
+                    var path_1 = {};
+                    path_1.pageIndex = parseInt(result.groups.pages, 10);
+                    path_1.contentStream = parseInt(result.groups.contentStream, 10);
+                    path_1.content = parseInt(result.groups.content, 10);
+                    path_1.contentItems = result.groups.contentItems.split('/').filter(function (ci) { return ci.includes('contentItem'); }).map(function (ci) {
                         var _a;
                         var contentItemIndex = ci.match(/\[(?<contentItem>\d+)\]/);
                         return parseInt(((_a = contentItemIndex === null || contentItemIndex === void 0 ? void 0 : contentItemIndex.groups) === null || _a === void 0 ? void 0 : _a.contentItem) || '-1', 10);
                     });
-                    path.annotIndex = parseInt(result.groups.annots, 10) || undefined;
-                    return path;
+                    path_1.annotIndex = parseInt(result.groups.annots, 10) || undefined;
+                    return path_1;
                 }
                 catch (err) {
                     console.log('NoMCIDContentItemPathParseError:', err.message || err);
                 }
             }
-        }
-        if (contextString.includes('contentItem')) {
-            var path_1 = {};
-            contextString.split('/').forEach(function (nodeString) {
-                if (nodeString.includes('page')) {
-                    path_1.pageIndex = parseInt(nodeString.split(/[[\]]/)[1], 10);
-                }
-                else if (nodeString.includes('contentItem') && nodeString.includes('mcid')) {
-                    path_1.mcid = parseInt(nodeString.split('mcid:')[1].slice(0, -1), 10);
-                }
-            });
-            return path_1;
-        }
-        else if (contextString.includes('annots')) {
             var path_2 = {};
             contextString.split('/').forEach(function (nodeString) {
                 if (nodeString.includes('page')) {
                     path_2.pageIndex = parseInt(nodeString.split(/[[\]]/)[1], 10);
                 }
-                else if (nodeString.includes('annots')) {
-                    path_2.annot = parseInt(nodeString.split(/[[\]]/)[1], 10);
+                else if (nodeString.includes('contentItem') && nodeString.includes('mcid')) {
+                    path_2.mcid = parseInt(nodeString.split('mcid:')[1].slice(0, -1), 10);
                 }
             });
             return path_2;
+        }
+        else if (contextString.includes('annots')) {
+            var path_3 = {};
+            contextString.split('/').forEach(function (nodeString) {
+                if (nodeString.includes('page')) {
+                    path_3.pageIndex = parseInt(nodeString.split(/[[\]]/)[1], 10);
+                }
+                else if (nodeString.includes('annots')) {
+                    path_3.annot = parseInt(nodeString.split(/[[\]]/)[1], 10);
+                }
+            });
+            return path_3;
         }
         contextString = contextString.split('PDStructTreeRoot)/')[1].split('/'); // cut path before start of Document
         contextString.forEach(function (nodeString) {
@@ -807,14 +806,23 @@ var getBboxForGlyph = function (operatorIndex, glyphIndex, operationsList, viewp
     var rotatedViewport = rotateViewport(rotateAngle, viewport);
     return [coordsArray[0] - rotatedViewport[0], coordsArray[1] - rotatedViewport[1], coordsArray[2], coordsArray[3]];
 };
-var parseMcidToBbox = function (listOfMcid, pageMap, annotations, viewport, rotateAngle, leftOffset, bottomOffset) {
+var parseMcidToBbox = function (listOfMcid, pageMap, refMap, annotations, viewport, rotateAngle, left, bottom) {
     var _a;
-    if (leftOffset === void 0) { leftOffset = 0; }
-    if (bottomOffset === void 0) { bottomOffset = 0; }
+    if (left === void 0) { left = 0; }
+    if (bottom === void 0) { bottom = 0; }
     var coords = {};
+    var leftOffset = left;
+    var bottomOffset = bottom;
     if (listOfMcid instanceof Array) {
         listOfMcid.forEach(function (mcid) {
-            var currentBbox = pageMap[mcid];
+            var _a;
+            var currentBbox;
+            if (mcid instanceof Object) {
+                currentBbox = ___default["default"].isNil(mcid.ref) ? pageMap[mcid.mcid] : (_a = refMap === null || refMap === void 0 ? void 0 : refMap["".concat(mcid.ref, "R")]) === null || _a === void 0 ? void 0 : _a[mcid.mcid];
+            }
+            else {
+                currentBbox = pageMap[mcid];
+            }
             if (!___default["default"].isNil(currentBbox) &&
                 !___default["default"].isNaN(currentBbox.x) &&
                 !___default["default"].isNaN(currentBbox.y) &&
@@ -833,6 +841,8 @@ var parseMcidToBbox = function (listOfMcid, pageMap, annotations, viewport, rota
                 width: Math.abs(rect[0] - rect[2]),
                 height: Math.abs(rect[1] - rect[3]),
             };
+            leftOffset = 0;
+            bottomOffset = 0;
         }
     }
     if (!coords || ___default["default"].isEmpty(coords))
@@ -1002,9 +1012,9 @@ var PdfPage = function (props) {
             var operatorList = _a[0], annotations = _a[1];
             var annotBBoxesAndOpPos = operatorList.argsArray[operatorList.argsArray.length - 3];
             var operationData = operatorList.argsArray[operatorList.argsArray.length - 2];
-            var _b = operatorList.argsArray[operatorList.argsArray.length - 1], positionData = _b[0], noMCIDData = _b[1];
+            var _b = operatorList.argsArray[operatorList.argsArray.length - 1], positionData = _b[0], noMCIDData = _b[1], refPositionData = _b[2];
             var annotsFormatted = getFormattedAnnotations(annotations);
-            var allBboxes = createAllBboxes(props.treeElementsBboxes, positionData, annotsFormatted, page.view, page.rotate);
+            var allBboxes = createAllBboxes(props.treeElementsBboxes, positionData, refPositionData, annotsFormatted, page.view, page.rotate);
             var errorBboxes = bboxList.map(function (bbox) {
                 var _a;
                 var _b, _c, _d, _e, _f, _g, _h, _j;
@@ -1018,7 +1028,7 @@ var PdfPage = function (props) {
                     _a = (_j = (_h = annotBBoxesAndOpPos[annotIndex]) === null || _h === void 0 ? void 0 : _h[1]) !== null && _j !== void 0 ? _j : [[], []], posData = _a[0], nMcidData = _a[1];
                 }
                 if (bbox.mcidList) {
-                    bbox.location = parseMcidToBbox(bbox.mcidList, posData, annotsFormatted, page.view, page.rotate, left, bottom);
+                    bbox.location = parseMcidToBbox(bbox.mcidList, posData, refPositionData, annotsFormatted, page.view, page.rotate, left, bottom);
                     if (___default["default"].isEmpty(bbox.location)) {
                         return null;
                     }

@@ -102,9 +102,9 @@ const PdfPage: FC<IPdfPageProps> = (props) => {
     Promise.all([page.getOperatorList(), page.getAnnotations()]).then(([operatorList, annotations]) => {
       const annotBBoxesAndOpPos = operatorList.argsArray[operatorList.argsArray.length - 3];
       const operationData = operatorList.argsArray[operatorList.argsArray.length - 2];
-      const [positionData, noMCIDData] = operatorList.argsArray[operatorList.argsArray.length - 1];
+      const [positionData, noMCIDData, refPositionData] = operatorList.argsArray[operatorList.argsArray.length - 1];
       const annotsFormatted = getFormattedAnnotations(annotations);
-      const allBboxes = createAllBboxes(props.treeElementsBboxes, positionData, annotsFormatted, page.view, page.rotate);
+      const allBboxes = createAllBboxes(props.treeElementsBboxes, positionData, refPositionData, annotsFormatted, page.view, page.rotate);
       const errorBboxes = bboxList.map((bbox) => {
         let opData = operationData,
             posData = positionData,
@@ -122,6 +122,7 @@ const PdfPage: FC<IPdfPageProps> = (props) => {
           bbox.location = parseMcidToBbox(
             bbox.mcidList,
             posData,
+            refPositionData,
             annotsFormatted,
             page.view,
             page.rotate,

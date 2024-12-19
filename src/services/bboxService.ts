@@ -250,12 +250,19 @@ export const createBboxMap = (mcidList: TreeElementBbox[]): AnyObject => {
   return bboxMap;
 };
 
-export const createAllBboxes = (bboxesAll: TreeElementBbox[] | undefined, pageMap: AnyObject, annotations: AnyObject, viewport: number[], rotateAngle: number): IBbox[] => {
+export const createAllBboxes = (
+  bboxesAll: TreeElementBbox[] | undefined,
+  pageMap: AnyObject,
+  refMap: AnyObject,
+  annotations: AnyObject,
+  viewport: number[],
+  rotateAngle: number,
+): IBbox[] => {
   if (_.isNil(bboxesAll)) return [];
   const unfilteredBboxes = bboxesAll?.map((bbox) => {
     const [mcid, id] = bbox as [AnyObject[], string];
-    const listOfMcid = cleanArray(mcid).map((obj: AnyObject) => obj?.mcid);
-    const location = parseMcidToBbox(listOfMcid, pageMap, annotations, viewport, rotateAngle);
+    const listOfMcid = cleanArray(mcid).map((obj: AnyObject) => obj?.stm ? { mcid: obj?.mcid, ref: obj?.stm?.num } : obj?.mcid);
+    const location = parseMcidToBbox(listOfMcid, pageMap, refMap, annotations, viewport, rotateAngle);
     if (_.isEmpty(location)) {
       return null;
     }
@@ -430,7 +437,8 @@ const getTagsFromErrorPlace = (context: string, structure: AnyObject) => {
   }
 
   if (selectedTag.hasOwnProperty('mcid') && selectedTag.hasOwnProperty('pageIndex')) {
-    return [[[selectedTag.mcid], selectedTag.pageIndex]];
+    const mcid = selectedTag.stm ? { mcid: selectedTag.mcid, ref: selectedTag.stm.num } : selectedTag.mcid;
+    return [[[mcid], selectedTag.pageIndex]];
   } else if (selectedTag.hasOwnProperty('annot') && selectedTag.hasOwnProperty('pageIndex')) {
     return [[{ annot: selectedTag.annot }, selectedTag.pageIndex]];
   } else if (selectedTag.hasOwnProperty('contentItems')) {
@@ -485,9 +493,9 @@ const convertContextToPath = (errorContext = '') => {
   let contextString: string | string[] = errorContext;
 
   try {
-    if (contextString.includes('contentItem') && !contextString.includes('mcid')) {
+    if (contextString.includes('contentItem')) {
       const result: any = contextString.match(
-        /pages\[(?<pages>\d+)\](\(.+\))?\/(annots\[(?<annots>\d+)\](\(.+\))?\/appearance\[\d\](\(.+\))?\/)?contentStream\[(?<contentStream>\d+)\](\(.+\))?\/content\[(?<content>\d+)\](?<contentItems>((\(.+\))?\/contentItem\[(\d+)\])+)/
+        /pages\[(?<pages>\d+)\](\(.+\))?\/(annots\[(?<annots>\d+)\](\(.+\))?\/appearance\[\d\](\(.+\))?\/)?contentStream\[(?<contentStream>\d+)\](\(.+\))?\/content\[(?<content>\d+)\](\{mcid:\d+\})?(?<contentItems>((\(.+\))?\/contentItem\[(\d+)\](\{mcid:\d+\})?)+)/
       );
       if (result) {
         try {
@@ -505,9 +513,6 @@ const convertContextToPath = (errorContext = '') => {
           console.log('NoMCIDContentItemPathParseError:', err.message || err);
         }
       }
-    }
-
-    if (contextString.includes('contentItem')) {
       let path: AnyObject = {};
       contextString.split('/').forEach(nodeString => {
         if (nodeString.includes('page')) {
@@ -602,19 +607,27 @@ export const getBboxForGlyph = (
 }
 
 export const parseMcidToBbox = (
-  listOfMcid: number[] | AnyObject,
+  listOfMcid: number[] | AnyObject[] | AnyObject,
   pageMap: AnyObject,
+  refMap: AnyObject,
   annotations: AnyObject,
   viewport: number[],
   rotateAngle: number,
-  leftOffset = 0,
-  bottomOffset = 0,
+  left = 0,
+  bottom = 0,
 ) => {
   let coords: AnyObject = {};
+  let leftOffset = left;
+  let bottomOffset = bottom;
 
   if (listOfMcid instanceof Array) {
     listOfMcid.forEach(mcid => {
-      const currentBbox = pageMap[mcid];
+      let currentBbox;
+      if (mcid instanceof Object) {
+        currentBbox = _.isNil(mcid.ref) ? pageMap[mcid.mcid] : refMap?.[`${mcid.ref}R`]?.[mcid.mcid];
+      } else {
+        currentBbox = pageMap[mcid];
+      }
       if (
         !_.isNil(currentBbox) &&
         !_.isNaN(currentBbox.x) &&
@@ -634,6 +647,8 @@ export const parseMcidToBbox = (
         width: Math.abs(rect[0] - rect[2]),
         height: Math.abs(rect[1] - rect[3]),
       };
+      leftOffset = 0;
+      bottomOffset = 0;
     }
   }
   if (!coords || _.isEmpty(coords)) return [];
